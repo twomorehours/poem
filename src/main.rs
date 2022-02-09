@@ -5,14 +5,7 @@ use colored::*;
 use jieba_rs::Jieba;
 use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    fs,
-    path::Path,
-    sync::Arc,
-    time::Instant,
-};
+use std::{collections::HashMap, fmt::Display, fs, path::Path, sync::Arc, time::Instant};
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -20,6 +13,8 @@ use tantivy::{
     schema::{Field, IndexRecordOption, Schema, SchemaBuilder, TextFieldIndexing, TextOptions},
     Document, Index,
 };
+
+const POEMS_STR: &str = include_str!("../poems.json");
 
 #[derive(Parser, Debug)]
 #[clap(about = "A repo for poems", version = "1.0.0")]
@@ -32,19 +27,15 @@ struct Args {
 enum Action {
     #[clap(about = "index all poems")]
     Index {
-        /// the file path of poems
-        #[clap(long)]
-        src_path: String,
-
         /// the path index will be stored
-        #[clap(long, default_value = "poem_index")]
+        #[clap(long, default_value = ".poem_index")]
         index_path: String,
     },
 
     #[clap(about = "search poems")]
     Search {
         /// the path index is stored
-        #[clap(long, default_value = "poem_index")]
+        #[clap(long, default_value = ".poem_index")]
         index_path: String,
         /// the keyword
         #[clap(long)]
@@ -53,18 +44,12 @@ enum Action {
 
     #[clap(about = "list poems")]
     List {
-        /// the file path of poems
-        #[clap(long)]
-        src_path: String,
         /// the max count of poem list
         #[clap(long)]
         limit: Option<usize>,
     },
     #[clap(about = "get a random poem")]
     Random {
-        /// the file path of poems
-        #[clap(long)]
-        src_path: String,
         /// the count you need
         #[clap(long, default_value = "1")]
         count: usize,
@@ -75,16 +60,12 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     match args.action {
-        Action::Index {
-            src_path,
-            index_path,
-        } => {
-            let poems_str = fs::read_to_string(&src_path)?;
-            let poems: Vec<Poem> = serde_json::from_str(&poems_str)?;
-            let len = poems.len();
+        Action::Index { index_path } => {
             let index = open_or_create_index(index_path, false)?;
             let mut writer = index.writer(1024 * 1024 * 10)?;
             let start = Instant::now();
+            let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
+            let len = poems.len();
             poems.into_iter().map(Document::from).for_each(|doc| {
                 writer.add_document(doc);
             });
@@ -113,9 +94,8 @@ fn main() -> Result<()> {
             }
             println!("got {} poems in {} ms", len, elapsed);
         }
-        Action::List { src_path, limit } => {
-            let poems_str = fs::read_to_string(&src_path)?;
-            let poems: Vec<Poem> = serde_json::from_str(&poems_str)?;
+        Action::List { limit } => {
+            let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
             let poems = match limit {
                 Some(l) => {
                     if l > poems.len() {
@@ -128,12 +108,8 @@ fn main() -> Result<()> {
             };
             poems.iter().for_each(|p| println!("{}", p));
         }
-        Action::Random {
-            src_path,
-            mut count,
-        } => {
-            let poems_str = fs::read_to_string(&src_path)?;
-            let mut poems: Vec<Poem> = serde_json::from_str(&poems_str)?;
+        Action::Random { mut count } => {
+            let mut poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
             if poems.is_empty() {
                 println!("no poem in repo");
                 return Ok(());
@@ -202,7 +178,7 @@ fn tokenizer() -> CangJieTokenizer {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq)]
+#[derive(Debug, Serialize, Deserialize, Eq, Clone)]
 struct Poem {
     title: String,
     author: String,
