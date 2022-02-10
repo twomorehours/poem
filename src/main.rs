@@ -5,7 +5,7 @@ use colored::*;
 use jieba_rs::Jieba;
 use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, fs, path::Path, sync::Arc, time::Instant};
+use std::{collections::HashMap, fmt::Display, fs, path::Path, sync::Arc};
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -13,6 +13,7 @@ use tantivy::{
     schema::{Field, IndexRecordOption, Schema, SchemaBuilder, TextFieldIndexing, TextOptions},
     Document, Index,
 };
+use indicatif::ProgressBar;
 
 const POEMS_STR: &str = include_str!("../poems.json");
 
@@ -63,15 +64,14 @@ fn main() -> Result<()> {
         Action::Index { index_path } => {
             let index = open_or_create_index(index_path, false)?;
             let mut writer = index.writer(1024 * 1024 * 10)?;
-            let start = Instant::now();
             let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
-            let len = poems.len();
+            let bar = ProgressBar::new(poems.len() as _);
             poems.into_iter().map(Document::from).for_each(|doc| {
                 writer.add_document(doc);
+                bar.inc(1);
             });
             writer.commit()?;
-            let elapsed = Instant::now().duration_since(start).as_millis();
-            println!("indxed {} poems in {} ms", len, elapsed);
+            bar.finish();
         }
         Action::Search {
             index_path,
@@ -84,15 +84,11 @@ fn main() -> Result<()> {
 
             let query = QueryParser::for_index(&index, fields.into_values().into_iter().collect())
                 .parse_query(&keyword)?;
-            let start = Instant::now();
             let top_docs = searcher.search(query.as_ref(), &TopDocs::with_limit(10000))?;
-            let len = top_docs.len();
-            let elapsed = Instant::now().duration_since(start).as_millis();
             for (_, doc_address) in top_docs.into_iter() {
                 let poem: Poem = searcher.doc(doc_address)?.into();
                 println!("{}", poem);
             }
-            println!("got {} poems in {} ms", len, elapsed);
         }
         Action::List { limit } => {
             let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
