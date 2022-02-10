@@ -184,8 +184,8 @@ struct Poem {
 
 impl Display for Poem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "\t{}", self.title.cyan().bold()).unwrap();
-        writeln!(f, "\t{}({})", self.author.cyan(), self.dynasty.cyan()).unwrap();
+        writeln!(f, "\t{}", self.title.bright_cyan()).unwrap();
+        writeln!(f, "\t{}〔{}〕", self.author.cyan(), self.dynasty.cyan()).unwrap();
         writeln!(f, "{}", self.content.cyan())
     }
 }
