@@ -24,7 +24,7 @@ use tantivy::{
 const POEMS_STR: &str = include_str!("../poems.json");
 
 #[derive(Parser, Debug)]
-#[clap(about = "A repo for poems", version = "1.0.0")]
+#[clap(about, version, author)]
 #[clap(global_setting(AppSettings::AllowNegativeNumbers))]
 struct Args {
     #[clap(subcommand)]
