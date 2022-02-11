@@ -4,10 +4,10 @@ use clap::{AppSettings, Parser};
 use colored::*;
 use indicatif::ProgressBar;
 use jieba_rs::Jieba;
-use rand::prelude::SliceRandom;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     fs,
     path::{Path, PathBuf},
@@ -118,7 +118,7 @@ fn main() -> Result<()> {
             poems.iter().for_each(|p| println!("{}", p));
         }
         Action::Random { mut count } => {
-            let mut poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
+            let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
             if poems.is_empty() {
                 println!("no poem in repo");
                 return Ok(());
@@ -127,8 +127,11 @@ fn main() -> Result<()> {
                 count = poems.len();
             }
             let mut rng = rand::thread_rng();
-            poems.shuffle(&mut rng);
-            poems.iter().take(count).for_each(|p| println!("{}", p));
+            let mut set = HashSet::new();
+            while set.len() < count {
+                set.insert(&poems[rng.gen_range(0..poems.len())]);
+            }
+            set.into_iter().for_each(|p| println!("{}", p));
         }
         Action::Stat { sort } => {
             let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
@@ -199,7 +202,7 @@ fn tokenizer() -> CangJieTokenizer {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
 struct Poem {
     title: String,
     author: String,
@@ -236,12 +239,6 @@ impl From<Document> for Poem {
             dynasty: extract_field_text(&doc, *fields.get("dynasty").unwrap()),
             content: extract_field_text(&doc, *fields.get("content").unwrap()),
         }
-    }
-}
-
-impl PartialEq for Poem {
-    fn eq(&self, other: &Self) -> bool {
-        self.title == other.title && self.author == other.author
     }
 }
 
