@@ -1,5 +1,6 @@
 # poem
 
+```shell
 ➜  ~ poem -h
 poem 0.1.0
 yu_h-neu@reachauto.com
@@ -19,3 +20,4 @@ SUBCOMMANDS:
     random    get random poems
     search    search poems
     stat      get stat of all poems
+```
