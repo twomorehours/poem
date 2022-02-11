@@ -46,7 +46,6 @@ enum Action {
         #[clap(long, parse(from_os_str), default_value = ".poem_index")]
         index_path: PathBuf,
         /// the keyword
-        #[clap(long)]
         keyword: String,
     },
 
