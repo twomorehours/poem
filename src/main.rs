@@ -1,11 +1,18 @@
 use anyhow::Result;
 use cang_jie::{CangJieTokenizer, TokenizerOption, CANG_JIE};
-use clap::Parser;
+use clap::{Parser, AppSettings};
 use colored::*;
+use indicatif::ProgressBar;
 use jieba_rs::Jieba;
 use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, fs, path::Path, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -13,12 +20,12 @@ use tantivy::{
     schema::{Field, IndexRecordOption, Schema, SchemaBuilder, TextFieldIndexing, TextOptions},
     Document, Index,
 };
-use indicatif::ProgressBar;
 
 const POEMS_STR: &str = include_str!("../poems.json");
 
 #[derive(Parser, Debug)]
 #[clap(about = "A repo for poems", version = "1.0.0")]
+#[clap(global_setting(AppSettings::AllowNegativeNumbers))]
 struct Args {
     #[clap(subcommand)]
     action: Action,
@@ -29,15 +36,15 @@ enum Action {
     /// index all poems
     Index {
         /// the path index will be stored
-        #[clap(long, default_value = ".poem_index")]
-        index_path: String,
+        #[clap(long, parse(from_os_str), default_value = ".poem_index")]
+        index_path: PathBuf,
     },
 
     /// search poems
     Search {
         /// the path index is stored
-        #[clap(long, default_value = ".poem_index")]
-        index_path: String,
+        #[clap(long, parse(from_os_str), default_value = ".poem_index")]
+        index_path: PathBuf,
         /// the keyword
         #[clap(long)]
         keyword: String,
