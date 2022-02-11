@@ -26,14 +26,14 @@ struct Args {
 
 #[derive(clap::Subcommand, Debug)]
 enum Action {
-    #[clap(about = "index all poems")]
+    /// index all poems
     Index {
         /// the path index will be stored
         #[clap(long, default_value = ".poem_index")]
         index_path: String,
     },
 
-    #[clap(about = "search poems")]
+    /// search poems
     Search {
         /// the path index is stored
         #[clap(long, default_value = ".poem_index")]
@@ -43,13 +43,13 @@ enum Action {
         keyword: String,
     },
 
-    #[clap(about = "list poems")]
+    /// list poems
     List {
         /// the max count of poem list
         #[clap(long)]
         limit: Option<usize>,
     },
-    #[clap(about = "get a random poem")]
+    /// get random poems
     Random {
         /// the count you need
         #[clap(long, default_value = "1")]
