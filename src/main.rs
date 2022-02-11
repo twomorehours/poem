@@ -1,6 +1,6 @@
 use anyhow::Result;
 use cang_jie::{CangJieTokenizer, TokenizerOption, CANG_JIE};
-use clap::{Parser, AppSettings};
+use clap::{AppSettings, Parser};
 use colored::*;
 use indicatif::ProgressBar;
 use jieba_rs::Jieba;
@@ -60,6 +60,13 @@ enum Action {
         /// the count you need
         #[clap(long, default_value = "1")]
         count: usize,
+    },
+
+    /// get stat of all poems
+    Stat {
+        /// sort by count desc
+        #[clap(long)]
+        sort: bool,
     },
 }
 
@@ -122,6 +129,18 @@ fn main() -> Result<()> {
             let mut rng = rand::thread_rng();
             poems.shuffle(&mut rng);
             poems.iter().take(count).for_each(|p| println!("{}", p));
+        }
+        Action::Stat { sort } => {
+            let poems: Vec<Poem> = serde_json::from_str(POEMS_STR)?;
+            let dynasty: Vec<&str> = poems.iter().map(|p| &p.dynasty[..]).collect();
+            let author: Vec<&str> = poems.iter().map(|p| &p.author[..]).collect();
+
+            let stat = Stat::new(
+                poems.len() as _,
+                words_count(&dynasty, sort),
+                words_count(&author, sort),
+            );
+            println!("{}", stat);
         }
     }
 
@@ -226,6 +245,38 @@ impl PartialEq for Poem {
     }
 }
 
+#[derive(Debug)]
+struct Stat<'a> {
+    total: i32,
+    author: Vec<(&'a str, i32)>,
+    dynasty: Vec<(&'a str, i32)>,
+}
+
+impl<'a> Stat<'a> {
+    fn new(total: i32, author: Vec<(&'a str, i32)>, dynasty: Vec<(&'a str, i32)>) -> Self {
+        Self {
+            total,
+            author,
+            dynasty,
+        }
+    }
+}
+
+impl<'a> Display for Stat<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "总数：{}", self.total).unwrap();
+        writeln!(f, "朝代：").unwrap();
+        self.dynasty
+            .iter()
+            .for_each(|d| writeln!(f, "{:>7}：{}", d.0, d.1).unwrap());
+        writeln!(f, "作者：").unwrap();
+        self.author
+            .iter()
+            .for_each(|d| writeln!(f, "{:>7}： {}", d.0, d.1).unwrap());
+        Ok(())
+    }
+}
+
 fn extract_field_text(doc: &Document, field: Field) -> String {
     doc.get_all(field)
         .next()
@@ -233,4 +284,17 @@ fn extract_field_text(doc: &Document, field: Field) -> String {
         .text()
         .unwrap()
         .to_string()
+}
+
+fn words_count<'a>(words: &[&'a str], sort: bool) -> Vec<(&'a str, i32)> {
+    let mut map = HashMap::new();
+    for w in words {
+        let entry = map.entry(*w).or_insert(0);
+        *entry += 1;
+    }
+    let mut pairs = map.into_iter().collect::<Vec<_>>();
+    if sort {
+        pairs.sort_by_key(|p| -p.1);
+    }
+    pairs
 }
