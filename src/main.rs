@@ -140,8 +140,8 @@ fn main() -> Result<()> {
 
             let stat = Stat::new(
                 poems.len() as _,
-                words_count(&dynasty, sort),
                 words_count(&author, sort),
+                words_count(&dynasty, sort),
             );
             println!("{}", stat);
         }
