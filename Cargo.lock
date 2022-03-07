@@ -751,6 +751,7 @@ dependencies = [
  "colored",
  "indicatif",
  "jieba-rs",
+ "lazy_static",
  "rand 0.8.4",
  "serde",
  "serde_json",

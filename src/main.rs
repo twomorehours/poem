@@ -1,17 +1,20 @@
+// lazy_static 实际上是定义了一个新类型 这个类型里面保存指定的类型
+// 然后实现Deref<指定类型> 并且在第一次deref的时候实例化指定类型 并保存在static的新类型值中
 use anyhow::Result;
 use cang_jie::{CangJieTokenizer, TokenizerOption, CANG_JIE};
 use clap::{AppSettings, Parser};
 use colored::*;
 use indicatif::ProgressBar;
 use jieba_rs::Jieba;
+use lazy_static::{__Deref, lazy_static};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
-    fs,
+    fs::{self, File},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{atomic::AtomicUsize, Arc},
 };
 use tantivy::{
     collector::TopDocs,
